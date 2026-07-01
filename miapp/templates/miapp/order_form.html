@@ -1,0 +1,17 @@
+{% extends "miapp/base.html" %}
+
+{% block title %}Create Order{% endblock %}
+
+{%block content %}
+<h1>Create Order</h1>
+
+<form method="post">
+  {% csrf_token %} {{ form.as_p }}
+
+  <button type="submit">Create order</button>
+</form>
+
+<p>
+  <a href="{% url 'miapp:order_list' %}"> Back to order list </a>
+</p>
+{% endblock %}

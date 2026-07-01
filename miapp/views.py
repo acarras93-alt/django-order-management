@@ -1,5 +1,6 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 
+from .forms import OrderForm
 from .models import Order  # Imports the Order model from the current app
 
 
@@ -42,3 +43,33 @@ def order_detail(request, order_id):
 
     # Renders the order detail template with the selected order
     return render(request,"miapp/order_detail.html",context)
+
+def order_create(request):
+    """
+    View that creates a new order.
+
+    Backend responsibility:
+    - On GET: show an empty form.
+    - On POST: validate incoming data.
+    - If valid: save the new order.
+    - Redirect to the order list after saving.
+    """
+
+    if request.method == "POST":
+        # The form receives data submitted by the browser.
+        form = OrderForm(request.POST)
+
+        # Django validates the form before saving anything.
+        if form.is_valid():
+            form.save()
+            return redirect("miapp:order_list")
+
+    else:
+        # Empty form for the first page load.
+        form = OrderForm()
+
+    context = {
+        "form": form,
+    }
+
+    return render(request, "miapp/order_form.html", context)

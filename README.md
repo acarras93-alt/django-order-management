@@ -223,3 +223,49 @@ El proyecto incluye 4 pedidos de prueba:
 
 **Estado:** ✅ Proyecto completado y validado
 **Última actualización:** Mayo 2026
+
+## Repositopry
+
+GitHub repository:
+
+# https://github.com/acarras93-alt/django-order-management
+
+Current version:
+
+Initial Django order management setup.
+This version includes the base architecture of the project: Order model,
+initial migration, SQLite database, Django admin configuration, public list
+and detail views, URL routing, template inheritance and basic project documentation.
+
+## Project Status
+
+This project is currently in its first development phase.
+
+The initial Django architecture is complete and includes:
+
+- Main Order model.
+- Initial migration.
+- SQLite database.
+- Django admin configuration.
+- Public order list view.
+- Public order detail view.
+- URL routing.
+- Template inheritance with base.html.
+- Main templates for list and detail pages.
+- Example data loaded through the admin.
+- Superuser created.
+- Controlled 404 response for non-existing orders.
+
+The current backend flow is:
+
+URL
+
+→ View
+→ ORM
+→ Database
+→ Context
+→ Template
+→ HTML Response
+
+The next development phase will include ModelForm, create/edit/delete views,
+authentication, protected actions, search, filters, ordering and pagination.
