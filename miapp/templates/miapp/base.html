@@ -1,0 +1,29 @@
+<!-- 
+base.html
+Plantilla base del proyecto.
+
+Responsabilidad:
+- Define la estructura común de la página.
+- Contiene navegación, estilos generales y bloques reutilizables.
+- Las demás plantillas heredan de esta.
+-->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- Bloque que cada template hijo puede sobrescribir -->
+    <title>{% block title %}Order Management{% endblock %}</title>
+  </head>
+  <body>
+    <!-- Navegación común de toda la web -->
+    <header>
+      <nav>
+        <a href="{% url 'miapp:order_list' %}">Orders</a>
+      </nav>
+    </header>
+    <!-- Contenido dinámico de cada página -->
+    <main>{% block content %} {% endblock %}</main>
+  </body>
+</html>

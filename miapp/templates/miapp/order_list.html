@@ -1,0 +1,28 @@
+<!--
+order_list.html
+Responsabilidad:
+- Hereda de base.html.
+- Muestra todos los pedidos enviados desde la view order_list.
+-->
+
+{% extends "miapp/base.html" %} {% block title %}Order List{% endblock %}
+{%block content %}
+<h1>Order List</h1>
+
+<!-- orders viene desde views.py en el context -->
+
+{% for order in orders %}
+<article>
+  <h2>{{ order.product_name }}</h2>
+
+  <p>Customer: {{ order.customer_name }}</p>
+
+  <p>Status: {{ order.status }}</p>
+
+  <!-- Enlace al detalle del pedido -->
+  <a href="{% url 'miapp:order_detail' order.id %}"> View detail </a>
+</article>
+
+{% empty %}
+<p>No orders available.</p>
+{% endfor %} {% endblock %}
