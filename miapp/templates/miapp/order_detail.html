@@ -10,13 +10,26 @@ Responsabilidad:
 <h1>Order Detail</h1>
 
 <!-- order viene desde views.py en el context -->
+<p>Reference: {{ order.order_reference }}</p>
 <p><strong>Customer:</strong> {{ order.customer_name }}</p>
 <p><strong>Email:</strong> {{ order.customer_email }}</p>
 <p><strong>Product:</strong> {{ order.product_name }}</p>
 <p><strong>Quantity:</strong> {{ order.quantity }}</p>
 <p><strong>Total:</strong> {{ order.total_amount }}</p>
+<p>Shipping address: {{ order.shipping_address }}</p>
+<p>Payment method: {{ order.payment_method }}</p>
 <p><strong>Status:</strong> {{ order.status }}</p>
 <p><strong>Created at:</strong> {{ order.created_at }}</p>
+<p>Updated at: {{ order.updated_at }}</p>
+
+<!-- Añadir debajo de los datos del pedido -->
+{% if user.is_authenticated %}
+    <p>
+        <a href="{% url 'miapp:order_update' order.id %}">Edit order</a>
+        |
+        <a href="{% url 'miapp:order_delete' order.id %}">Delete order</a>
+    </p>
+{% endif %}
 
 <a href="{% url 'miapp:order_list' %}"> Back to order list </a>
 {% endblock %}

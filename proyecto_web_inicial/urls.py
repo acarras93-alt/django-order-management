@@ -20,6 +20,12 @@ from django.urls import path, include
 urlpatterns = [
     # Django Admin interface
     path("admin/", admin.site.urls),
+    
+    # Django built-in authentication URLs:
+    # /login/
+    # /logout/
+    path("", include("django.contrib.auth.urls")),
+    
     # Includes URL patterns from the orders app
     path("", include("miapp.urls")),
 ]

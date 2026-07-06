@@ -30,6 +30,8 @@ class OrderForm(forms.ModelForm):
             "product_name",
             "quantity",
             "total_amount",
+            "shipping_address",
+            "payment_method",
             "status",
         ]
 

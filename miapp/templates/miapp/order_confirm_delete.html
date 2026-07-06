@@ -1,0 +1,28 @@
+<!-- miapp/templates/miapp/order_confirm_delete.html -->
+
+{% extends "miapp/base.html" %}
+
+{% block title %}Delete Order{% endblock %}
+
+{% block content %}
+<h1>Delete Order</h1>
+
+<p>Are you sure you want to delete this order?</p>
+
+<p>
+    <strong>Customer:</strong> {{ order.customer_name }}<br>
+    <strong>Product:</strong> {{ order.product_name }}<br>
+    <strong>Status:</strong> {{ order.status }}<br>
+    <strong>Total:</strong> {{ order.total_amount }}
+</p>
+
+<form method="post">
+    {% csrf_token %}
+
+    <button type="submit">Confirm delete</button>
+</form>
+
+<p>
+    <a href="{% url 'miapp:order_detail' order.id %}">Cancel</a>
+</p>
+{% endblock %}
