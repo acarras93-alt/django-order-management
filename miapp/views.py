@@ -6,27 +6,34 @@
 # 5. Respuesta -> La vista devuelve un objeto 'HTTPResponse' al navegador del usuario
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.core.paginator import Paginator
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
+from django.urls import reverse_lazy
+from django.views.generic import (
+    TemplateView,
+    FormView,
+    ListView,
+    DetailView,
+    CreateView,
+    UpdateView,
+    DeleteView,
+)
 
 from .forms import OrderForm
-from .models import Order  
+from .models import Order 
 
 # Pagina de inicio pública
-def home(request):
+class HomeView(TemplateView):
     """Public home page.
     
     Backend responsibility:
-    - Receive the HTTP request.
     - Render the main entry page.
-    - allow the template to show different links depending on authentication.
+    - Allow the template to show different links depending on autehntication.
     """
-    
-    return render(request, "miapp/home.html")
+    # TemplateView ya sabe renderizar un template.
+    template_name = "miapp/home.html"
 
-def signup(request):
+class SignUpView(FormView):
     """Register a new user
     
     Backend responsibility:
@@ -34,160 +41,130 @@ def signup(request):
     - On POST: validate the submitted user data.
     - If valid: create the user, log them in and redirect to home.
     """
-    # Si el usuario envía el formulário, procesamos los datos
-    if request.method == "POST":
-        # UserCreationForm receives username and password data from the browser.
-        form = UserCreationForm(request.POST)
-
-        # Django validates username and password rules before creating the user.
-        if form.is_valid():
-            user = form.save()
-
-            # After registration, the user is automatically logged in.
-            login(request, user)
-
-            return redirect("miapp:home")
-
-    else:
-        # Empty form for the first page load.
-        form = UserCreationForm()
-
-    context = {
-        "form": form,
-    }
-    # Renderizamos el template pasando el formulario al contexto.
-    return render(request, "registration/signup.html", context)
-
-def order_list(request):
-    """
-    Public view that shows all orders.
-
-    Backend mental model:
-    - Equivalent to list_orders() in a service layer.
-    - Uses the Django ORM instead of a JSON repository.
-    - Sends the result to the template through context.
-    """
-    # ORM query: gets all Order records from the database
-    orders = Order.objects.all()
-
-    # Context: data sent from the backend view to the HTML template
-    context = {
-        "orders": orders,
-    }
+    # FormView ya sabe mostrar formulario en GET y validar formulario en POST
+    # Personalizo qué ocurre cuando el formulario es válido
+    template_name = "registration/signup.html"
+    form_class = UserCreationForm
+    success_url = reverse_lazy("miapp:home")
     
-    # Render: returns an HTTP response with the generated HTML
-    return render(request, "miapp/order_list.html", context)
+    def form_valid(self, form):
+        user = form.save()
+        login(self.request, user)
 
+        return super().form_valid(form)
 
-def order_detail(request, order_id):
+class OrderListView(ListView):
     """
-    Public view that shows a single order.
-
-    Backend mental model:
-    - Equivalent to find_order_by_id(order_id).
-    - If the order does not exist, Django returns a 404 response.
+    Public view that shows all orders with search, filter, ordering
+    and pagination.
     """
-    # ORM query with automatic 404 if the object does not exist
-    order = get_object_or_404(Order, id=order_id)
+
+    model = Order
+    template_name = "miapp/order_list.html"
+    context_object_name = "orders"
+    paginate_by = 10
+
+    allowed_order_fields = {
+        "customer_name": "customer_name",
+        "product_name": "product_name",
+        "total_amount": "total_amount",
+        "created_at": "created_at",
+        "updated_at": "updated_at",
+        "status": "status",
+    }
+    # decidir qué pedidos se consultan
+    def get_queryset(self):
+        orders = Order.objects.all()
+
+        query = self.request.GET.get("q", "").strip()
+
+        if query:
+            orders = orders.filter(
+                Q(customer_name__icontains=query)
+                | Q(customer_email__icontains=query)
+                | Q(product_name__icontains=query)
+                | Q(order_reference__icontains=query)
+                | Q(payment_method__icontains=query)
+            )
+
+        status = self.request.GET.get("status", "").strip()
+
+        if status:
+            orders = orders.filter(status__iexact=status)
+
+        order = self.request.GET.get("order", "created_at")
+        direction = self.request.GET.get("dir", "desc")
+
+        order_field = self.allowed_order_fields.get(order, "created_at")
+
+        if direction == "desc":
+            order_field = f"-{order_field}"
+
+        return orders.order_by(order_field)
+
+    # añadir datos extra para el template
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        query_params = self.request.GET.copy()
+
+        if "page" in query_params:
+            query_params.pop("page")
+
+        context["query"] = self.request.GET.get("q", "").strip()
+        context["status"] = self.request.GET.get("status", "").strip()
+        context["order"] = self.request.GET.get("order", "created_at")
+        context["direction"] = self.request.GET.get("dir", "desc")
+        context["query_params"] = query_params.urlencode()
+
+        return context
+class OrderDetailView(DetailView):
+    """Public view that shows a single order."""
+    # DetailView ya sabe buscar un objeto por primary key.
     
-    # Context: data sent from the backend view to the HTML template
-    context = {
-        "order": order,
-    }
+    model = Order
+    template_name = "miapp/order_detail.html"
+    context_object_name = "order"
+    pk_url_kwarg = "order_id"
 
-    # Renders the order detail template with the selected order
-    return render(request,"miapp/order_detail.html",context)
+class OrderCreateView(LoginRequiredMixin, CreateView):
+    """View that creates a new order."""
+    # CreateView ya sabe:
+    # - GET -> mostrar formulario
+    # - POST -> validar formulario
+    # - form_valid -> guardar objeto
+    # - success_url -> redirigir después de guardar
+    # - LoginRequiredMixin -> protege la view
+    
+    model = Order
+    form_class = OrderForm
+    template_name = "miapp/order_form.html"
+    success_url = reverse_lazy("miapp:order_list")
 
-@login_required
-def order_create(request):
-    """
-    View that creates a new order.
-
-    Backend responsibility:
-    - On GET: show an empty form.
-    - On POST: validate incoming data.
-    - If valid: save the new order.
-    - Redirect to the order list after saving.
-    """
-
-    if request.method == "POST":
-        # The form receives data submitted by the browser.
-        form = OrderForm(request.POST)
-
-        # Django validates the form before saving anything.
-        if form.is_valid():
-            form.save()
-            return redirect("miapp:order_list")
-
-    else:
-        # Empty form for the first page load.
-        form = OrderForm()
-
-    context = {
-        "form": form,
-    }
-
-    return render(request, "miapp/order_form.html", context)
-
-@login_required
-def order_update(request, order_id):
-    """
-    View that updates an existing order.
-
-    Backend responsibility:
-    - Only authenticated users can edit orders.
-    - Load the existing Order by ID.
-    - On GET: show the form with the current order data.
-    - On POST: validate submitted changes.
-    - If valid: update the order and redirect to detail.
-    """
-
-    # Get the order or return 404 if it does not exist.
-    order = get_object_or_404(Order, id=order_id)
-
-    if request.method == "POST":
-        # The form receives submitted data and updates the existing instance.
-        form = OrderForm(request.POST, instance=order)
-
-        # Django validates the form before saving changes.
-        if form.is_valid():
-            form.save()
-            return redirect("miapp:order_detail", order_id=order.pk)
-
-    else:
-        # The form is pre-filled with the current order data.
-        form = OrderForm(instance=order)
-
-    context = {
-        "form": form,
-        "order": order,
-    }
-
-    return render(request, "miapp/order_form.html", context)
+class OrderUpdateView(LoginRequiredMixin, UpdateView):
+    """View that updates an existing order."""
+    # UpdateView ya sabe:
+    # - GET -> buscar el objeto y mostrar formulario con datos actuales.
+    # - POST -> validar datos y actualizar esa instancia.
+    # - get_success_url() -> permite redirigir al detalle del pedido editado.
+    
+    model = Order
+    form_class = OrderForm
+    template_name = "miapp/order_form.html"
+    context_object_name = "order"
+    pk_url_kwarg = "order_id"
 
 
-@login_required
-def order_delete(request, order_id):
-    """
-    View that deletes an existing order.
 
-    Backend responsibility:
-    - Only authenticated users can delete orders.
-    - Load the existing Order by ID.
-    - On GET: show a confirmation page.
-    - On POST: delete the order and redirect to list.
-    """
-
-    # Get the order or return 404 if it does not exist.
-    order = get_object_or_404(Order, id=order_id)
-
-    if request.method == "POST":
-        # Delete the existing order from the database.
-        order.delete()
-        return redirect("miapp:order_list")
-
-    context = {
-        "order": order,
-    }
-
-    return render(request, "miapp/order_confirm_delete.html", context)
+class OrderDeleteView(LoginRequiredMixin, DeleteView):
+    """View that deletes an existing order."""
+    # DeleteView ya sabe:
+    # - GET -> mostrar confirmación
+    # - POST -> borrar objeto
+    # - succes_url -> redirigir después del borrado
+    
+    model = Order
+    template_name = "miapp/order_confirm_delete.html"
+    context_object_name = "order"
+    pk_url_kwarg = "order_id"
+    success_url = reverse_lazy("miapp:order_list")
