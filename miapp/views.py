@@ -1,3 +1,9 @@
+# CICLO DE UNA PETICION WEB
+# 1. Ejecución -> Se invoca a la vista (ej: views.order_update) asociada al patrón, desde la ruta que coincide
+# 2. Proceso -> La vista consulta la base de datos para obtener los post
+# 3. Contexto -> La vista prepara los datos en un diccionario('contexto')
+# 4. Template -> La vista renderiza el template HTML pasándole el contexto
+# 5. Respuesta -> La vista devuelve un objeto 'HTTPResponse' al navegador del usuario
 from django.contrib.auth import login
 from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import render, redirect, get_object_or_404
