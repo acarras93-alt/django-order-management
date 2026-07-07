@@ -1,6 +1,6 @@
 # CICLO DE UNA PETICION WEB
 # 1. Ejecución -> Se invoca a la vista (ej: views.order_update) asociada al patrón, desde la ruta que coincide
-# 2. Proceso -> La vista consulta la base de datos para obtener los post
+# 2. Proceso -> La vista consulta la base de datos para obtener los pedidos
 # 3. Contexto -> La vista prepara los datos en un diccionario('contexto')
 # 4. Template -> La vista renderiza el template HTML pasándole el contexto
 # 5. Respuesta -> La vista devuelve un objeto 'HTTPResponse' al navegador del usuario
@@ -28,7 +28,7 @@ class HomeView(TemplateView):
     
     Backend responsibility:
     - Render the main entry page.
-    - Allow the template to show different links depending on autehntication.
+    - Allow the template to show different links depending on authentication.
     """
     # TemplateView ya sabe renderizar un template.
     template_name = "miapp/home.html"
@@ -154,7 +154,11 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
     context_object_name = "order"
     pk_url_kwarg = "order_id"
 
-
+    def get_success_url(self):
+        return reverse_lazy(
+            "miapp:order_detail",
+            kwargs={"order_id": self.kwargs["order_id"]},
+        )
 
 class OrderDeleteView(LoginRequiredMixin, DeleteView):
     """View that deletes an existing order."""
