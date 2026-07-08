@@ -5,7 +5,6 @@
 # 4. Template -> La vista renderiza el template HTML pasándole el contexto
 # 5. Respuesta -> La vista devuelve un objeto 'HTTPResponse' al navegador del usuario
 from django.contrib.auth import login
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.urls import reverse_lazy
@@ -19,8 +18,12 @@ from django.views.generic import (
     DeleteView,
 )
 
-from .forms import OrderForm
-from .models import Order 
+from .forms import OrderForm, SignUpForm
+from .models import Order
+
+# Capa views: coordina el flujo completo.
+# Representa los casos de uso HTTP de la aplicación.
+# Este proyecto contien las Class-Based Views que conectan las rutas con la lógica web: listado, detalle, creación, actualización, eliminación y registro de usuarios.
 
 # Pagina de inicio pública
 class HomeView(TemplateView):
@@ -41,10 +44,11 @@ class SignUpView(FormView):
     - On POST: validate the submitted user data.
     - If valid: create the user, log them in and redirect to home.
     """
+    # UserCreationForm es un formulario que Django proporciona para crear usuarios dentro de su sistema de autenticación
     # FormView ya sabe mostrar formulario en GET y validar formulario en POST
     # Personalizo qué ocurre cuando el formulario es válido
     template_name = "registration/signup.html"
-    form_class = UserCreationForm
+    form_class = SignUpForm
     success_url = reverse_lazy("miapp:home")
     
     def form_valid(self, form):

@@ -1,12 +1,28 @@
 """
-Define the Order model as the main domain entity
-used to store customer order data in the database.
+Define the Order model as the main domain entity used to store customer order data in the database.
+
+Order:
+- customer_name
+- customer_email
+- product_name
+- quantity
+- total_amount
+- shipping_address
+- payment_method
+- order_reference
+- status
+- created_at
+- updated_at
+
+Django updates these fields when modifying the order:
+order_reference -> It is generated automatically
+created_at -> Django creates it when inserting the order
+updated_at -> Django updates it by modifying the order
 """
+# El modelo contien todos los campos del pedido
+# Se define qué es un pedido.
 from uuid import uuid4
-
 from django.db import models
-
-
 class Order(models.Model):
     """
     Main domain model used to store customer orders in the database.
