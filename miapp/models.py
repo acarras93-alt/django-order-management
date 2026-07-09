@@ -14,15 +14,16 @@ Order:
 - created_at
 - updated_at
 
-Django updates these fields when modifying the order:
-order_reference -> It is generated automatically
-created_at -> Django creates it when inserting the order
-updated_at -> Django updates it by modifying the order
+System-managed fields:
+order_reference -> generated automatically before the first save.
+created_at -> set automatically when the order is created.
+updated_at -> updated automatically whenever the order is saved.
 """
-# El modelo contien todos los campos del pedido
-# Se define qué es un pedido.
+# Model responsibility:
+# Defines the complete persistent structure and system-managed behavior of an Order.
 from uuid import uuid4
 from django.db import models
+
 class Order(models.Model):
     """
     Main domain model used to store customer orders in the database.

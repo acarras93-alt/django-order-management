@@ -1,13 +1,14 @@
-# CICLO DE UNA PETICION WEB
-# 1. Ejecución -> Se invoca a la vista (ej: views.order_update) asociada al patrón, desde la ruta que coincide
-# 2. Proceso -> La vista consulta la base de datos para obtener los pedidos
-# 3. Contexto -> La vista prepara los datos en un diccionario('contexto')
-# 4. Template -> La vista renderiza el template HTML pasándole el contexto
-# 5. Respuesta -> La vista devuelve un objeto 'HTTPResponse' al navegador del usuario
+# Web request flow:
+# URL routing -> View -> Form / ORM -> Context -> Template -> HTTP Response
+
+# This file contains the web use cases of the application.
+# Class-Based Views are used to reuse Django's standard CRUD patterns.
 from django.contrib.auth import login
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.urls import reverse_lazy
+
+# Implementando la arquitectura de Class-Based Views, Django se encarga internamente de renderizar usando las clases genéricas que importas.
 from django.views.generic import (
     TemplateView,
     FormView,
@@ -21,11 +22,13 @@ from django.views.generic import (
 from .forms import OrderForm, SignUpForm
 from .models import Order
 
-# Capa views: coordina el flujo completo.
-# Representa los casos de uso HTTP de la aplicación.
-# Este proyecto contien las Class-Based Views que conectan las rutas con la lógica web: listado, detalle, creación, actualización, eliminación y registro de usuarios.
+# Capa views: representan los casos de uso HTTP de la aplicación.
+# -> coordinan la petición HTTP con formularios, ORM, templates y redirecciones.
+# Uso las Class-Based Views porque mi aplicación implementa casos de uso web estándar de CRUD.
+# Django ya proporciona clases genéricas para estos patrones, lo que reduce repetición y hace el código más declarativo.
 
-# Pagina de inicio pública
+# Public read-only view: authentication is not required.
+# modify persisted data.
 class HomeView(TemplateView):
     """Public home page.
     
@@ -33,9 +36,12 @@ class HomeView(TemplateView):
     - Render the main entry page.
     - Allow the template to show different links depending on authentication.
     """
-    # TemplateView ya sabe renderizar un template.
+    # TemplateView renderiza el template configurado para una página pública simple.
     template_name = "miapp/home.html"
 
+# Implementamos el formulario de registro y la creación del usuario
+# Public read-only view: authentication is not required.
+# modify persisted data.
 class SignUpView(FormView):
     """Register a new user
     
@@ -44,7 +50,7 @@ class SignUpView(FormView):
     - On POST: validate the submitted user data.
     - If valid: create the user, log them in and redirect to home.
     """
-    # UserCreationForm es un formulario que Django proporciona para crear usuarios dentro de su sistema de autenticación
+    # UserCreationForm es un formulario que Django proporciona para crear usuarios dentro de su sistema de autenticación.
     # FormView ya sabe mostrar formulario en GET y validar formulario en POST
     # Personalizo qué ocurre cuando el formulario es válido
     template_name = "registration/signup.html"
@@ -57,6 +63,9 @@ class SignUpView(FormView):
 
         return super().form_valid(form)
 
+# Representa el caso de uso de lectura avanzada de pedidos.
+# Public read-only view: authentication is not required.
+# modify persisted data.
 class OrderListView(ListView):
     """
     Public view that shows all orders with search, filter, ordering
@@ -76,7 +85,9 @@ class OrderListView(ListView):
         "updated_at": "updated_at",
         "status": "status",
     }
-    # decidir qué pedidos se consultan
+    # Decidir qué pedidos se consultan
+    # Build the QuerySet used by the advanced order list.
+    # This method centralizes search, filtering and safe ordering.
     def get_queryset(self):
         orders = Order.objects.all()
 
@@ -106,7 +117,9 @@ class OrderListView(ListView):
 
         return orders.order_by(order_field)
 
-    # añadir datos extra para el template
+    # Añadir datos extra para el template
+    # Add UI state to the template context.
+    # This preserves search, filters and ordering across pagination links.
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -122,6 +135,10 @@ class OrderListView(ListView):
         context["query_params"] = query_params.urlencode()
 
         return context
+
+# Consultar un pedido concreto
+# Public read-only view: authentication is not required.
+# modify persisted data.
 class OrderDetailView(DetailView):
     """Public view that shows a single order."""
     # DetailView ya sabe buscar un objeto por primary key.
@@ -131,6 +148,8 @@ class OrderDetailView(DetailView):
     context_object_name = "order"
     pk_url_kwarg = "order_id"
 
+# Protected write view: authentication is required through LoginRequiredMixin.
+# updates or deletes persisted Order data.
 class OrderCreateView(LoginRequiredMixin, CreateView):
     """View that creates a new order."""
     # CreateView ya sabe:
@@ -145,6 +164,9 @@ class OrderCreateView(LoginRequiredMixin, CreateView):
     template_name = "miapp/order_form.html"
     success_url = reverse_lazy("miapp:order_list")
 
+# Consultar un pedido concreto par editarlo.
+# Protected write view: authentication is required through LoginRequiredMixin.
+# updates or deletes persisted Order data.
 class OrderUpdateView(LoginRequiredMixin, UpdateView):
     """View that updates an existing order."""
     # UpdateView ya sabe:
@@ -164,6 +186,8 @@ class OrderUpdateView(LoginRequiredMixin, UpdateView):
             kwargs={"order_id": self.kwargs["order_id"]},
         )
 
+# Protected write view: authentication is required through LoginRequiredMixin.
+# Consultar un pedido concreto para eliminarlo.
 class OrderDeleteView(LoginRequiredMixin, DeleteView):
     """View that deletes an existing order."""
     # DeleteView ya sabe:

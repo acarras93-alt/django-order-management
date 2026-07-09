@@ -3,19 +3,25 @@
 # Aquí entra la lógica
 # GET -> mostrar formulario vacío
 # POST -> procesar formulario enviado
+
 # 2. Form -> El formulario entra aquí
 # Responsabilidad:
 # - recibir datos del usuario
 # - validar esos datos
 # - preparar datos limpios
 # - permitir guardar si es ModelForm
+
 # 3. ORM -> Database
 # Si el formulario es valido, la view guarda usando el ORM
 # Ejemplo form.save()
+
 # 4. View -> La view prepara los datos para el template(context)
+
 # 5. Template -> Django renderiza el HTML
+
 # 6. HTTP Response -> Django devuelve el HTML al navegador
 
+# Punto importante:
 # forms.ModelForm -> Crear o actualizar Order
 # forms.Form -> Contacto, búsqueda o filtros
 # Signup con UserCreationForm -> caso especial: Django ya te da un formulario de autenticación/usuarios
@@ -23,8 +29,7 @@
 Forms for the orders application.
 
 This file contains the input and validation layer for Order objects.
-The form receives data from the browser, validates it and prepares it
-to be saved through the Django ORM.
+The form receive user input, validate it and prepare cleaned data for the view.
 
 """
 
@@ -37,6 +42,8 @@ from django.contrib.auth.models import User
 # 1.Formulario del dominio Order
 # - Definimos qué datos del pedido puede rellenar el formulario.
 # - El formulario contiene solo los campos que el usuario puede introducir o modificar.
+# Domain ModelForm:
+# Used to create and update Order records through the ORM.
 class OrderForm(forms.ModelForm):
     """
     Form connected to the Order model.
@@ -49,7 +56,7 @@ class OrderForm(forms.ModelForm):
 
     class Meta:
         model = Order
-
+        
         # These are the fields that the user can fill from the web form.
         # order_reference, created_at and updated_at are excluded because
         # they are managed automatically by the system.
@@ -108,6 +115,13 @@ class OrderForm(forms.ModelForm):
                 }
             ),
         }
+        
+# Validation methods belong to OrderForm.
+# They validate user input before creating or updating an order.
+# These methods enforce basic business rules:
+# - names cannot be empty;
+# - quantity and total amount must be positive;
+# - payment method and status must be allowed values.
 
     def clean_customer_name(self):
         """
@@ -131,7 +145,6 @@ class OrderForm(forms.ModelForm):
         Backend rule:
         A product name cannot be empty or only spaces.
         """
-
         product_name = self.cleaned_data["product_name"]
 
         if not product_name.strip():
@@ -146,7 +159,6 @@ class OrderForm(forms.ModelForm):
         Backend rule:
         The quantity must be greater than zero.
         """
-
         quantity = self.cleaned_data["quantity"]
 
         if quantity <= 0:
@@ -161,15 +173,88 @@ class OrderForm(forms.ModelForm):
         Backend rule:
         The total amount must be greater than zero.
         """
-
         total_amount = self.cleaned_data["total_amount"]
 
         if total_amount <= 0:
             raise forms.ValidationError("Total amount must be greater than zero.")
 
         return total_amount
+    
+    def clean_payment_method(self):
+        """
+        Validate payment method.
+
+        Backend rule:
+        Payment method must be one of the allowed values when provided.
+        """
+
+        payment_method = self.cleaned_data["payment_method"].strip().lower()
+
+        if not payment_method:
+            return payment_method
+
+        allowed_payment_methods = [
+            "card",
+            "paypal",
+            "bank_transfer",
+            "cash",
+        ]
+
+        if payment_method not in allowed_payment_methods:
+            raise forms.ValidationError(
+                "Payment method must be card, paypal, bank_transfer or cash."
+            )
+
+        return payment_method
+    
+    def clean_status(self):
+        """
+        Validate order status.
+
+        Backend rule:
+        Status must be one of the allowed values.
+        """
+
+        status = self.cleaned_data["status"].strip().lower()
+
+        allowed_statuses = [
+            "pending",
+            "confirmed",
+            "shipped",
+            "cancelled",
+        ]
+
+        if status not in allowed_statuses:
+            raise forms.ValidationError(
+                "Status must be pending, confirmed, shipped or cancelled."
+            )
+
+        return status
+
+    # Cross-field validation:
+    # Large orders require a minimum total amount.
+    def clean(self):
+        """
+        Validate business rules that depend on multiple fields.
+
+        Backend rule:
+        Large orders must have a minimum total amount.
+        """
+        cleaned_data = super().clean()
+        quantity = cleaned_data.get("quantity")
+        total_amount = cleaned_data.get("total_amount")
+
+        if quantity and total_amount:
+            if quantity > 10 and total_amount < 100:
+                raise forms.ValidationError(
+                    "Large orders must have a total amount of at least 100."
+                )
+                
+        return cleaned_data
 
 # 2. Formulario personalizado de registro.
+# Custom signup form:
+# Extends Django's UserCreationForm with a required email field.
 class SignUpForm(UserCreationForm):
     """
     Custom signup form for user registration.
@@ -179,7 +264,6 @@ class SignUpForm(UserCreationForm):
     - Add email as a required registration field.
     - Keep password validation integrated with Django Auth.
     """
-    
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(
@@ -199,6 +283,8 @@ class SignUpForm(UserCreationForm):
         ]
 
 # 3. Formulario de búsqueda/filtros.
+# Search/filter form:
+# Validates GET parameters used by the advanced order list.
 class OrderSearchForm(forms.Form):
 
     """

@@ -115,18 +115,24 @@ USE_I18N = True
 USE_TZ = True
 
 
+# En esta capa definimos todas nuestras páginas
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
 
+# REDIRECCIONES
+
 # If a protected view requires login, Django sends the user here.
-# Si el usuario intenta entra a una vista protegida sin iniciar sesión, Django lo enviará a esta URL
+# Si el usuario intenta entra a una vista protegida sin iniciar sesión, Django lo enviará al login
 LOGIN_URL = "login"
 
 # Authentication redirects
+# Cuando el usuario se registre se le redireciona a la pagina principal.
 # After login, Django redirects the user to the home page.
 LOGIN_REDIRECT_URL = "miapp:home"
 
+# Cuando el usuario salga de la sesión se le redireciona a la pagina principal.
 # After logout, Django redirects the user to the home page.
 LOGOUT_REDIRECT_URL = "miapp:home"

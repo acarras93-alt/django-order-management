@@ -1,8 +1,9 @@
 """
-Register the Order model in the admin panel
-and connect it with its Django Admin configuration.
+Register the Order model in the admin panel and connect it 
+with its Django Admin configuration.
 """
-
+# Admin responsibility:
+# Configure the internal backoffice used to list, search, filter and review orders.
 from django.contrib import admin # Imports Django Admin tools to register and configure models
 from .models import Order # Imports the Order model from the current app
 
@@ -74,9 +75,9 @@ class OrderAdmin(admin.ModelAdmin):
     # Fields that should not be manually edited.
     # Protege campos generados por el sistema
     readonly_fields = (
-    "display_order_reference",
-    "created_at",
-    "updated_at",
+        "display_order_reference",
+        "created_at",
+        "updated_at",
     )
     
     # Organize the detail form into logical sections.

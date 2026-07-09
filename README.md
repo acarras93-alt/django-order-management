@@ -1,10 +1,10 @@
 # Order Management System 📦
 
-Mini sistema web desarrollado con Django para gestionar pedidos de clientes mediante un flujo CRUD completo, autenticación, formularios, vistas protegidas y consultas avanzadas.
+Mini sistema web desarrollado con Django para gestionar pedidos de clientes mediante un flujo CRUD completo, autenticación, formularios, vistas protegidas, consultas avanzadas y una arquitectura basada en Class-Based Views.
 
 ## Objetivo
 
-El objetivo de esta práctica es entrenar una arquitectura backend web con Django, entendiendo el flujo completo:
+El objetivo de esta práctica es entrenar una arquitectura backend web con Django, entendiendo el flujo completo de una petición:
 
 ```text
 URL
@@ -16,7 +16,7 @@ URL
 → HTTP Response
 ```
 
-El proyecto no se limita a mostrar datos. Implementa creación, lectura, actualización, eliminación, autenticación, control de acceso y listado avanzado de pedidos.
+El proyecto no se limita a mostrar datos. Implementa creación, lectura, actualización, eliminación, autenticación, control de acceso, listado avanzado de pedidos y documentación técnica del sistema.
 
 ## Estado actual
 
@@ -28,16 +28,17 @@ Incluye:
 - Referencia interna automática para pedidos.
 - Migraciones de base de datos.
 - Django Admin configurado.
+- Formularios con `ModelForm`.
+- Formulario personalizado de registro basado en `UserCreationForm`.
 - Listado público de pedidos.
 - Detalle público de pedidos.
 - Creación de pedidos protegida con autenticación.
 - Actualización de pedidos protegida con autenticación.
 - Eliminación de pedidos protegida con confirmación por POST.
-- Registro de usuarios.
 - Login y logout usando el sistema de autenticación de Django.
 - Navegación dinámica según `user.is_authenticated`.
 - Búsqueda, filtro, ordenación y paginación en `/orders/`.
-- Manejo de errores mediante `get_object_or_404()`.
+- Class-Based Views para los casos de uso web principales.
 - Templates con herencia mediante `base.html`.
 
 ## Tecnologías utilizadas
@@ -46,6 +47,7 @@ Incluye:
 - Django 6.x
 - SQLite3
 - Django ORM
+- Django Forms
 - Django Templates
 - Django Authentication
 - HTML
@@ -94,25 +96,34 @@ La referencia se genera automáticamente antes de guardar el pedido si todavía 
 | `proyecto_web_inicial/urls.py` | Enrutamiento principal |
 | `miapp/urls.py` | Contrato HTTP de la aplicación |
 | `models.py` | Entidad `Order` y persistencia ORM |
-| `forms.py` | Validación de entrada mediante `ModelForm` |
-| `views.py` | Casos de uso HTTP |
+| `forms.py` | Entrada y validación mediante formularios |
+| `views.py` | Casos de uso HTTP mediante Class-Based Views |
 | `templates/` | Presentación HTML |
 | `admin.py` | Backoffice interno |
 | `migrations/` | Evolución del esquema de base de datos |
 | `README.md` | Documentación técnica del proyecto |
 
-## Flujo backend principal
+## Evolución a Class-Based Views
 
-```text
-Request HTTP
-→ URL routing
-→ View
-→ Form / ORM
-→ Database
-→ Context
-→ Template
-→ Response HTTP
-```
+El proyecto comenzó con vistas basadas en funciones para entender de forma explícita el ciclo de una petición web: `request`, `GET`, `POST`, `form.is_valid()`, `form.save()`, `render()` y `redirect()`.
+
+Después se evolucionó a Class-Based Views para reutilizar los patrones estándar de Django y reducir repetición en los casos de uso CRUD.
+
+| Caso de uso | Class-Based View | Responsabilidad |
+| --- | --- | --- |
+| Home | `TemplateView` | Renderizar la página principal |
+| Signup | `FormView` | Mostrar y procesar el formulario de registro |
+| Listado | `ListView` | Consultar, filtrar, ordenar y paginar pedidos |
+| Detalle | `DetailView` | Mostrar un pedido concreto |
+| Crear | `CreateView` | Crear pedidos mediante `OrderForm` |
+| Actualizar | `UpdateView` | Editar pedidos existentes |
+| Eliminar | `DeleteView` | Confirmar y eliminar pedidos |
+
+### Decisión técnica
+
+La evolución a Class-Based Views no cambia la funcionalidad principal del sistema. Cambia la forma de organizar los casos de uso web.
+
+Django se encarga del flujo estándar de renderizado, validación, búsqueda de objetos, guardado y redirección. El proyecto mantiene solo la configuración y las personalizaciones necesarias.
 
 ## Autenticación y control de acceso
 
@@ -126,7 +137,7 @@ Django proporciona:
 - sesiones
 - `request.user`
 - `user.is_authenticated`
-- `login_required`
+- `LoginRequiredMixin`
 
 El programador decide:
 
@@ -136,25 +147,59 @@ El programador decide:
 - qué vistas deben protegerse;
 - qué navegación ve cada tipo de usuario.
 
-## Vistas públicas
+### Vistas públicas
 
 | Vista | URL | Descripción |
 | --- | --- | --- |
-| `home` | `/` | Página de inicio pública |
-| `signup` | `/signup/` | Registro de usuario |
-| `login` | `/login/` | Inicio de sesión |
-| `order_list` | `/orders/` | Listado de pedidos |
-| `order_detail` | `/orders/<id>/` | Detalle de pedido |
+| `HomeView` | `/` | Página de inicio pública |
+| `SignUpView` | `/signup/` | Registro de usuario |
+| `LoginView` | `/login/` | Inicio de sesión proporcionado por Django |
+| `OrderListView` | `/orders/` | Listado de pedidos |
+| `OrderDetailView` | `/orders/<id>/` | Detalle de pedido |
 
-## Vistas protegidas
+### Vistas protegidas
 
 | Vista | URL | Descripción |
 | --- | --- | --- |
-| `order_create` | `/orders/create/` | Crear pedido |
-| `order_update` | `/orders/<id>/edit/` | Actualizar pedido |
-| `order_delete` | `/orders/<id>/delete/` | Eliminar pedido |
+| `OrderCreateView` | `/orders/create/` | Crear pedido |
+| `OrderUpdateView` | `/orders/<id>/edit/` | Actualizar pedido |
+| `OrderDeleteView` | `/orders/<id>/delete/` | Eliminar pedido |
 
-Las operaciones de escritura están protegidas con `login_required` porque modifican datos persistidos.
+Las operaciones de escritura están protegidas con `LoginRequiredMixin` porque modifican datos persistidos.
+
+## Formularios
+
+El proyecto utiliza formularios para validar la entrada del usuario antes de persistir datos.
+
+### `OrderForm`
+
+`OrderForm` es un `ModelForm` conectado al modelo `Order`.
+
+Permite crear y actualizar pedidos, pero no expone `order_reference`, `created_at` ni `updated_at`, porque son campos gestionados por el sistema.
+
+Campos editables desde formulario:
+
+- `customer_name`
+- `customer_email`
+- `product_name`
+- `quantity`
+- `total_amount`
+- `shipping_address`
+- `payment_method`
+- `status`
+
+Validaciones implementadas:
+
+- Nombre de cliente no vacío.
+- Nombre de producto no vacío.
+- Cantidad mayor que cero.
+- Importe total mayor que cero.
+
+### `SignUpForm`
+
+El proyecto incluye un formulario personalizado de registro basado en `UserCreationForm`.
+
+Este formulario añade `email` como campo obligatorio y mantiene la validación de contraseñas integrada con Django.
 
 ## URLs principales
 
@@ -195,23 +240,6 @@ Ejemplos:
 | `page` | Página actual |
 
 La ordenación se controla mediante una lista blanca de campos permitidos para evitar ordenar directamente por valores recibidos desde la URL.
-
-## Formularios
-
-El proyecto utiliza `OrderForm` como capa de entrada y validación.
-
-`OrderForm` permite crear y actualizar pedidos, pero no expone `order_reference`, porque esa referencia es generada por el sistema.
-
-Campos editables desde formulario:
-
-- `customer_name`
-- `customer_email`
-- `product_name`
-- `quantity`
-- `total_amount`
-- `shipping_address`
-- `payment_method`
-- `status`
 
 ## Templates principales
 
@@ -264,6 +292,34 @@ python3 manage.py createsuperuser
 python3 manage.py runserver
 ```
 
+Acceso local:
+
+```text
+http://127.0.0.1:8000/
+```
+
+## Usuario de prueba / superusuario
+
+Superusuario de desarrollo para acceder al panel de administración:
+
+```text
+URL: http://127.0.0.1:8000/admin/
+Usuario: admin
+Contraseña: admin-1993
+```
+
+Si la contraseña no coincide en la base de datos local, se puede resetear con:
+
+```bash
+python3 manage.py changepassword admin
+```
+
+También se puede crear un nuevo superusuario con:
+
+```bash
+python3 manage.py createsuperuser
+```
+
 ## Comandos principales
 
 ```bash
@@ -271,9 +327,52 @@ python3 manage.py check
 python3 manage.py makemigrations
 python3 manage.py migrate
 python3 manage.py createsuperuser
+python3 manage.py changepassword admin
 python3 manage.py runserver
 python3 manage.py shell
 ```
+
+## Comprobaciones finales
+
+Antes de entregar el proyecto, ejecutar:
+
+```bash
+python3 manage.py check
+python3 manage.py makemigrations
+python3 manage.py migrate
+python3 manage.py runserver
+```
+
+Rutas a comprobar manualmente:
+
+```text
+/
+/signup/
+/login/
+/logout/
+/orders/
+/orders/?q=laptop
+/orders/?status=pending
+/orders/?order=created_at&dir=desc
+/orders/?q=laptop&status=pending&order=created_at&dir=desc&page=2
+/orders/create/
+/orders/1/
+/orders/1/edit/
+/orders/1/delete/
+/admin/
+```
+
+Comportamiento esperado:
+
+- Se puede iniciar sesión sin errores.
+- Se puede cerrar sesión sin errores.
+- El listado y el detalle son públicos.
+- Crear, editar y eliminar requieren usuario autenticado.
+- Los formularios muestran errores de validación.
+- El listado permite combinar búsqueda, filtro, ordenación y paginación.
+- Los parámetros GET se preservan al navegar entre páginas.
+- El panel de administración permite gestionar pedidos.
+- El proyecto arranca correctamente sin errores de sistema.
 
 ## Estructura del proyecto
 
@@ -311,6 +410,29 @@ proyecto_web/
             └── signup.html
 ```
 
+## Cobertura de requisitos de la actividad
+
+| Requisito | Estado |
+| --- | --- |
+| ModelForm para el modelo principal | Cumplido |
+| Crear registros | Cumplido |
+| Editar registros | Cumplido |
+| Validaciones básicas | Cumplido |
+| Login y logout | Cumplido |
+| Crear, editar y eliminar solo para autenticados | Cumplido |
+| Listado y detalle públicos | Cumplido |
+| Búsqueda por texto con `?q=` | Cumplido |
+| Filtro adicional por estado | Cumplido |
+| Filtros mediante GET | Cumplido |
+| Orden con `?order=` | Cumplido |
+| Lista blanca de campos ordenables | Cumplido |
+| Dirección `?dir=asc|desc` | Cumplido |
+| Paginación | Cumplido |
+| Preservar parámetros GET en paginación | Cumplido |
+| Herencia desde `base.html` | Cumplido |
+| Barra de navegación dinámica | Cumplido |
+| README con ejecución y URLs de ejemplo | Cumplido |
+
 ## Validaciones implementadas
 
 - [x] Proyecto Django creado.
@@ -320,6 +442,7 @@ proyecto_web/
 - [x] SQLite configurado como base de datos local.
 - [x] Django Admin configurado.
 - [x] `OrderForm` creado.
+- [x] `SignUpForm` personalizado.
 - [x] Listado público de pedidos.
 - [x] Detalle público de pedidos.
 - [x] Creación de pedidos con formulario.
@@ -328,9 +451,9 @@ proyecto_web/
 - [x] Registro de usuarios.
 - [x] Login y logout.
 - [x] Navegación dinámica según autenticación.
-- [x] Protección de vistas privadas con `login_required`.
+- [x] Protección de vistas privadas con `LoginRequiredMixin`.
 - [x] Búsqueda, filtro, ordenación y paginación.
-- [x] Manejo de 404 con `get_object_or_404()`.
+- [x] Manejo de recursos inexistentes mediante las Class-Based Views de Django.
 - [x] Documentación técnica actualizada.
 
 ## Conceptos trabajados
@@ -338,20 +461,21 @@ proyecto_web/
 - Modelos Django y ORM.
 - Migraciones de base de datos.
 - Django Admin.
-- Function-based views.
+- Function-Based Views.
+- Class-Based Views.
 - URLs y enrutamiento.
 - `ModelForm`.
+- `UserCreationForm`.
 - GET y POST.
 - Patrón POST → Redirect → GET.
 - Autenticación con Django.
-- Control de acceso con `login_required`.
+- Control de acceso con `LoginRequiredMixin`.
 - Templates y herencia.
 - Context como puente entre view y template.
 - Búsqueda con parámetros GET.
 - Filtros con QuerySet.
 - Ordenación segura con lista blanca.
 - Paginación.
-- Manejo de errores HTTP 404.
 - Separación de responsabilidades por capas.
 
 ## Decisiones técnicas relevantes
@@ -372,6 +496,14 @@ El borrado no se ejecuta directamente por GET. Primero se muestra una confirmaci
 
 La ordenación del listado avanzado usa una lista blanca de campos permitidos. No se ordena directamente por cualquier valor recibido desde la URL.
 
+### Class-Based Views
+
+El CRUD se ha refactorizado a Class-Based Views para reutilizar patrones estándar de Django y reducir repetición en la capa de views.
+
+### Alcance controlado
+
+No se han introducido relaciones como `Customer`, `Product` u `OrderItem` porque el objetivo de la práctica es cerrar un sistema de pedidos autocontenido con flujo backend web completo.
+
 ## Mejoras futuras
 
 - Separar `Customer` como entidad propia.
@@ -380,9 +512,33 @@ La ordenación del listado avanzado usa una lista blanca de campos permitidos. N
 - Añadir `choices` para `status` y `payment_method`.
 - Añadir tests unitarios y tests de views.
 - Añadir permisos por rol.
+- Añadir relación `User → Order`.
 - Añadir soft delete para pedidos históricos.
 - Migrar de SQLite a PostgreSQL.
 - Crear una API REST con Django REST Framework.
+
+## Entrega
+
+Formato requerido:
+
+```text
+.zip
+```
+
+Nombre recomendado del archivo:
+
+```text
+M5T2_Alvaro_Carrasco_Morera.zip
+```
+
+Antes de comprimir, excluir carpetas y archivos innecesarios como:
+
+```text
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+```
 
 ## Repositorio
 
@@ -397,6 +553,43 @@ https://github.com/acarras93-alt/django-order-management
 Current version:
 
 ```text
-Django order management system with authentication, protected CRUD actions,
-advanced order listing, automatic order references and updated technical documentation.
+Django order management system with authentication, protected CRUD actions, advanced order listing, automatic order references, Class-Based Views and updated technical documentation.
 ```
+
+```markdown
+
+## Comprobaciones funcionales realizadas
+
+Antes de la entrega se han verificado los siguientes flujos:
+
+- Login y logout funcionan correctamente.
+- El listado y el detalle de pedidos son públicos.
+- Crear, editar y eliminar redirigen al login si el usuario no está autenticado.
+- Crear, editar y eliminar funcionan correctamente con un usuario autenticado.
+- La búsqueda, el filtro, la ordenación y la paginación funcionan sin romper la navegación.
+- Los parámetros GET se preservan al navegar entre páginas.
+- Django Admin permite acceder a `Orders` y abrir pedidos sin errores.
+- El registro muestra el campo `email` y permite crear usuarios.
+- El proyecto arranca correctamente y pasa `python3 manage.py check`.
+
+El sistema cumple el flujo principal esperado: permite consultar pedidos de forma pública, protege las operaciones de escritura mediante autenticación,valida formularios, mantiene 
+la navegación de búsqueda/filtros/ordenación y permite gestionar pedidos desde Django Admin.
+
+### Rutas verificadas
+
+```text
+
+/
+ /signup/
+ /login/
+ /logout/
+ /orders/
+ /orders/?q=laptop
+ /orders/?status=pending
+ /orders/?order=created_at&dir=desc
+ /orders/?q=laptop&status=pending&order=created_at&dir=desc&page=2
+ /orders/create/
+ /orders/1/
+ /orders/1/edit/
+ /orders/1/delete/
+ /admin/
